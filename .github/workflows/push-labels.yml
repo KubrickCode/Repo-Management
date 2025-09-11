@@ -1,0 +1,44 @@
+name: Push Labels to Repositories
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      repo_list: ${{ steps.set-matrix.outputs.repo_list }}
+    steps:
+      - name: Checkout management repository
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/download/v4.35.2/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
+      - name: Set matrix from repos.yml
+        id: set-matrix
+        run: |
+          repos_json=$(yq -o=json -I=0 '.repos' repos.yml)
+          echo "repo_list=$repos_json" >> $GITHUB_OUTPUT
+
+  sync-labels:
+    needs: prepare-matrix
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        repo: ${{ fromJSON(needs.prepare-matrix.outputs.repo_list) }}
+
+    steps:
+      - name: Checkout management repository
+        uses: actions/checkout@v4
+
+      - name: Sync labels to ${{ matrix.repo }}
+        uses: micnncim/action-label-syncer@v1.3.0
+        with:
+          repository: ${{ github.repository_owner }}/${{ matrix.repo }}
+          manifest: "./labels.yml"
+          token: ${{ secrets.PAT }}
+          prune: true

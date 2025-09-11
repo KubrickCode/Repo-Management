@@ -1,0 +1,47 @@
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+
+- name: "feature"
+  color: "0075ca"
+  description: "New feature"
+
+- name: "improvement"
+  color: "a2eeef"
+  description: "Improvements to existing features"
+
+- name: "refactor"
+  color: "bfdadc"
+  description: "Refactoring code"
+
+- name: "documentation"
+  color: "5319e7"
+  description: "Improvements or additions to documentation"
+
+- name: "structure"
+  color: "006b75"
+  description: "Concerns about or improvements to the structure"
+
+- name: "environment"
+  color: "008080"
+  description: "Overall working environment"
+
+- name: "infra"
+  color: "000000"
+  description: "Infrastructure management"
+
+- name: "in progress"
+  color: "fbca04"
+  description: "Issues currently being worked on"
+
+- name: "investigating"
+  color: "d876e3"
+  description: "Currently in the process of consideration"
+
+- name: "canceled"
+  color: "e0e0e0"
+  description: "Canceled issue"

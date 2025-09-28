@@ -1,0 +1,93 @@
+name: Rename Labels in Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      old_label:
+        description: "Old label name to replace"
+        required: true
+      new_label:
+        description: "New label name"
+        required: true
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      repo_list: ${{ steps.set-matrix.outputs.repo_list }}
+    steps:
+      - name: Checkout management repository
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/download/v4.35.2/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
+      - name: Set matrix from repos.yml
+        id: set-matrix
+        run: |
+          repos_json=$(yq -o=json -I=0 '.repos' repos.yml)
+          echo "repo_list=$repos_json" >> $GITHUB_OUTPUT
+
+  rename-labels:
+    needs: prepare-matrix
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        repo: ${{ fromJSON(needs.prepare-matrix.outputs.repo_list) }}
+
+    steps:
+      - name: Rename labels in ${{ matrix.repo }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT }}
+          script: |
+            const oldLabel = '${{ github.event.inputs.old_label }}';
+            const newLabel = '${{ github.event.inputs.new_label }}';
+            const repo = '${{ matrix.repo }}';
+            const owner = context.repo.owner;
+
+            console.log(`Processing repository: ${owner}/${repo}`);
+            console.log(`Renaming label from "${oldLabel}" to "${newLabel}"`);
+
+            try {
+              // Get all issues with the old label
+              const issues = await github.rest.issues.listForRepo({
+                owner: owner,
+                repo: repo,
+                labels: oldLabel,
+                state: 'all'
+              });
+
+              console.log(`Found ${issues.data.length} issues with label "${oldLabel}"`);
+
+              // Process each issue
+              for (const issue of issues.data) {
+                console.log(`Processing issue #${issue.number}: ${issue.title}`);
+
+                // Get current labels
+                const currentLabels = issue.labels.map(label => label.name);
+
+                // Remove old label and add new label
+                const updatedLabels = currentLabels
+                  .filter(label => label !== oldLabel)
+                  .concat(newLabel);
+
+                // Update the issue
+                await github.rest.issues.update({
+                  owner: owner,
+                  repo: repo,
+                  issue_number: issue.number,
+                  labels: updatedLabels
+                });
+
+                console.log(`Updated issue #${issue.number} labels`);
+              }
+
+              console.log(`Completed processing repository: ${owner}/${repo}`);
+            } catch (error) {
+              console.error(`Error processing repository ${owner}/${repo}:`, error);
+              throw error;
+            }

@@ -1,0 +1,11 @@
+{
+  "name": "repo-management",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/repo-management",
+  "features": {
+    "./local-features/just": {},
+    "./local-features/node": {}
+  },
+  "remoteUser": "root"
+}

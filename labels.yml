@@ -38,7 +38,7 @@
   color: "fbca04"
   description: "Issues currently being worked on"
 
-- name: "needs-thinking"
+- name: "needs thinking"
   color: "d876e3"
   description: "Currently in the process of consideration"
 

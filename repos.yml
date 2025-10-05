@@ -4,3 +4,4 @@ repos:
   - "tlog"
   - "CmdBell"
   - "general"
+  - "github-project-status-viewer"

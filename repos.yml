@@ -6,3 +6,4 @@ repos:
   - "general"
   - "github-project-status-viewer"
   - "notion-orm"
+  - "baedal"

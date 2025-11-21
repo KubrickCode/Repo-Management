@@ -7,3 +7,5 @@ repos:
   - "github-project-status-viewer"
   - "notion-orm"
   - "baedal"
+  - "ai-config-toolkit"
+  - "workflow-toolkit"

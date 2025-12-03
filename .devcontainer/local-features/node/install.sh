@@ -2,6 +2,8 @@
 
 set -e
 
-yarn set version berry
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
 
-npm install -g @anthropic-ai/claude-code
+export SHELL=/bin/bash
+pnpm setup

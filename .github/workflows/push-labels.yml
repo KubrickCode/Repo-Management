@@ -2,6 +2,19 @@ name: Push Labels to Repositories
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: '실행 모드'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - all
+          - single
+      target_repo:
+        description: 'single 선택 시 리포지토리명 입력'
+        type: string
+        required: false
 
 jobs:
   prepare-matrix:
@@ -20,7 +33,21 @@ jobs:
       - name: Set matrix from repos.yml
         id: set-matrix
         run: |
-          repos_json=$(yq -o=json -I=0 '.repos' repos.yml)
+          if [ "${{ inputs.mode }}" = "all" ]; then
+            repos_json=$(yq -o=json -I=0 '.repos' repos.yml)
+          else
+            target="${{ inputs.target_repo }}"
+            if [ -z "$target" ]; then
+              echo "::error::single 모드에서는 리포지토리명을 입력해야 합니다."
+              exit 1
+            fi
+            # repos.yml에 존재하는지 검증
+            if ! yq -e ".repos[] | select(. == \"$target\")" repos.yml > /dev/null 2>&1; then
+              echo "::error::'$target'은(는) repos.yml에 없는 리포지토리입니다."
+              exit 1
+            fi
+            repos_json="[\"$target\"]"
+          fi
           echo "repo_list=$repos_json" >> $GITHUB_OUTPUT
 
   sync-labels:

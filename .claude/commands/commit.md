@@ -1,16 +1,13 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*)
-argument-hint: [ko|en] [message]
-description: Generate clear and descriptive commit messages in Korean or English without conventional prefixes
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Write
+description: Generate Conventional Commits-compliant messages (feat/fix/docs/chore) in Korean and English
 ---
 
-# Smart Git Commit Message Generator
+# Conventional Commits Message Generator
 
-Generate clear commit message in specified language: $ARGUMENTS
+Generates commit messages following [Conventional Commits v1.0.0](https://www.conventionalcommits.org/) specification in both Korean and English. **Choose one version for your commit.**
 
-**Language:** Use `ko` for Korean, `en` for English (default)
-
-## Current Repository State
+## Repository State Analysis
 
 - Git status: !git status --porcelain
 - Current branch: !git branch --show-current
@@ -20,87 +17,262 @@ Generate clear commit message in specified language: $ARGUMENTS
 
 ## What This Command Does
 
-1. Checks which files are staged with git status
-2. Performs a git diff to understand what changes will be committed
-3. Analyzes the diff to determine if multiple distinct logical changes are present
-4. If multiple distinct changes are detected, suggests breaking into multiple smaller commits
-5. For each suggested commit, creates a clear and descriptive message
-6. Presents the final commit message(s) for you to use manually
+1. Checks current branch name to detect issue number (e.g., develop/shlee/32 → #32)
+2. Checks which files are staged with git status
+3. Performs a git diff to understand what changes will be committed
+4. Generates commit messages in Conventional Commits format in both Korean and English
+5. Adds "fix #N" at the end if branch name ends with a number
+6. **Saves to commit_message.md file for easy copying**
 
-## Best Practices for Clear Commit History
-
-- **Atomic commits**: Each commit should contain related changes that serve a single purpose
-- **Split large changes**: If changes touch multiple concerns, split them into separate commits
-- **Clear descriptions**: Write commit messages that explain what changed and why
-- **Present tense, imperative mood**: Write commit messages as commands (e.g., "Add feature" not "Added feature")
-- **Concise first line**: Keep the first line under 72 characters
-- **Add context when needed**: Include a blank line and then more detailed explanation if necessary
-- **Focus on the "why"**: The diff shows what changed, the message should explain why
-
-## Guidelines for Splitting Commits
-
-When analyzing the diff, consider splitting commits based on these criteria:
-
-1. **Different concerns**: Changes to unrelated parts of the codebase
-2. **Different purposes**: Mixing new features, bug fixes, refactoring, etc.
-3. **File patterns**: Changes to different types of files (e.g., source code vs documentation)
-4. **Logical grouping**: Changes that would be easier to understand or review separately
-5. **Size**: Very large changes that would be clearer if broken down
-
-## Examples of Clear Commit Messages
-
-Good commit messages without prefixes:
-
-- Add user authentication system with JWT tokens
-- Fix memory leak in rendering process when handling large datasets
-- Update API documentation with new endpoints and examples
-- Simplify error handling logic in parser module
-- Remove deprecated legacy code from v1 API
-- Improve form accessibility for screen readers
-- Add input validation for user registration
-- Strengthen password requirements for authentication
-- Reorganize component structure for better maintainability
-- Implement transaction validation business logic
-- Add unit tests for new user service features
-- Update dependencies to patch security vulnerabilities
-
-Example of splitting commits with clear messages:
-
-- First commit: Add TypeScript definitions for Solc 0.8.20
-- Second commit: Update documentation for new Solc version support
-- Third commit: Upgrade build dependencies to latest versions
-- Fourth commit: Add API endpoint for contract verification
-- Fifth commit: Implement parallel processing for compilation tasks
-- Sixth commit: Add comprehensive test coverage for new features
-- Seventh commit: Fix security vulnerabilities in authentication flow
-
-## Multi-line Commit Message Example
+## Conventional Commits Format (REQUIRED)
 
 ```
-Refactor authentication system for better security
+<type>[(optional scope)]: <description>
 
-- Replace MD5 hashing with bcrypt for passwords
-- Add rate limiting to prevent brute force attacks
-- Implement session timeout after 30 minutes of inactivity
-- Update all related unit and integration tests
+[optional body]
 
-This change addresses the security audit findings from Q3 2024
-and brings our auth system in line with OWASP recommendations.
+[optional footer: fix #N]
 ```
+
+### Available Types
+
+Analyze staged changes and suggest the most appropriate type:
+
+| Type         | When to Use                                           | SemVer Impact |
+| ------------ | ----------------------------------------------------- | ------------- |
+| **feat**     | New feature or capability added                       | MINOR (0.x.0) |
+| **fix**      | User-facing bug fix                                   | PATCH (0.0.x) |
+| **ifix**     | Internal/infrastructure bug fix (CI, build, deploy)   | PATCH (0.0.x) |
+| **perf**     | Performance improvements                              | PATCH         |
+| **docs**     | Documentation only changes (README, comments, etc.)   | PATCH         |
+| **style**    | Code formatting, missing semicolons (no logic change) | PATCH         |
+| **refactor** | Code restructuring without changing behavior          | PATCH         |
+| **test**     | Adding or fixing tests                                | PATCH         |
+| **chore**    | Build config, dependencies, tooling updates           | PATCH         |
+| **ci**       | CI/CD configuration changes                           | PATCH         |
+
+**BREAKING CHANGE**: MUST use both type! format (exclamation mark after type) AND BREAKING CHANGE: footer with migration guide for major version bump.
+
+Example:
+
+```
+feat!: change API response format from JSON to MessagePack
+
+Migrated response format to MessagePack binary for 40% packet size reduction.
+
+BREAKING CHANGE: Client code update required
+- Install MessagePack library: npm install msgpack5
+- Update response parsing: response.json() → msgpack.decode(response.body)
+- Update type definitions: API_RESPONSE_FORMAT constant changed
+```
+
+### Type Selection Decision Tree
+
+Analyze git diff output and suggest type based on file patterns:
+
+```
+Changed Files → Suggested Type
+
+src/**/*.{ts,js,tsx,jsx} + new functions/classes → feat
+src/**/*.{ts,js,tsx,jsx} + bug fix → fix
+README.md, docs/**, *.md → docs
+package.json, pnpm-lock.yaml, .github/** → chore
+**/*.test.{ts,js}, **/*.spec.{ts,js} → test
+.github/workflows/** → ci
+```
+
+If multiple types apply, prioritize: `feat` > `fix` > other types.
+
+### Confusing Cases: fix vs ifix vs chore
+
+**Key distinction**: Does it affect **users** or only **developers/infrastructure**?
+
+| Scenario                                              | Type       | Reason                                       |
+| ----------------------------------------------------- | ---------- | -------------------------------------------- |
+| Backend GitHub Actions test workflow not running      | `ifix`     | Bug in CI/CD that blocks development         |
+| OOM error causing deployment failure                  | `ifix`     | Infrastructure bug blocking release          |
+| E2E test flakiness causing false negatives            | `ifix`     | Testing infrastructure bug                   |
+| Vite build timeout in production build                | `ifix`     | Build system bug                             |
+| API returns 500 error for valid requests              | `fix`      | Users experience error responses             |
+| Page loading speed improved from 3s to 0.8s           | `perf`     | Users directly feel the improvement          |
+| App crashes when accessing profile page               | `fix`      | Users experience crash                       |
+| Internal database query optimization (no user impact) | `refactor` | Code improvement, no measurable user benefit |
+| Dependency security patch (CVE fix)                   | `chore`    | Build/tooling update (not a bug fix)         |
+| Upgrading React version for new features              | `chore`    | Dependency update (not a bug fix)            |
+
+**Decision flowchart:**
+
+```
+Is it a bug (something broken)?
+├─ NO → Use chore/refactor/docs/etc
+└─ YES → Does it affect end users?
+    ├─ YES → fix (user-facing bug)
+    └─ NO → ifix (infrastructure/developer bug)
+```
+
+**Examples:**
+
+- ✅ `fix: login button not responding` (user problem)
+- ✅ `ifix: Docker build failing due to missing environment variable` (infra bug)
+- ✅ `ifix: Prisma migration script syntax error` (developer tooling bug)
+- ❌ ~~`fix: null pointer exception in ItemService`~~ → Use `fix: app crashes when viewing items` (user perspective)
+
+## Commit Message Format Guidelines
+
+**Core Principle: Focus on what problem was solved rather than what was done**
+
+**Title Writing Principle: Prioritize user-facing problems**
+
+- ❌ "Fix empty login form submission error" (code perspective)
+- ✅ "Fix login button not responding to clicks" (user perspective)
+- ❌ "Handle null pointer exception" (technical perspective)
+- ✅ "Fix app crash when accessing profile page" (user perspective)
+
+Keep it simple and concise. Use appropriate format based on complexity:
+
+### Very Simple Changes
+
+```
+type: brief description
+```
+
+**Example:**
+
+```
+docs: fix typo in README
+```
+
+### Simple Changes
+
+```
+type: problem description
+
+What problem occurred and how it was resolved in one or two lines
+```
+
+**Example:**
+
+```
+fix: login button not responding with empty fields
+
+Login attempts with empty input fields showed no response
+Added client-side validation and error message display
+```
+
+**For multiple changes/reasons, use list format:**
+
+```
+refactor: backend architect agent role redefinition
+
+- Changed focus from API design to system structure design
+- Modified to concentrate on domain modeling, layered architecture, and modularization strategy
+```
+
+### Standard Changes
+
+```
+type: problem description
+
+Description of the problem that occurred
+(Brief reproduction steps if applicable)
+
+How it was solved and the reasoning behind the solution
+
+fix #N
+```
+
+**Example:**
+
+```
+fix: user list page failing to load
+
+User list page showed continuous loading spinner with 1000+ users
+(Reproduction: User List > View All click)
+
+Added composite database index and Redis caching to reduce
+response time from 30+ seconds to under 2 seconds
+
+fix #32
+```
+
+### Complex Changes (rarely needed)
+
+```
+type: problem description
+
+Problem:
+- Specific problem description
+- Reproduction steps (brief if available)
+
+Solution:
+- Approach taken and why that method was chosen
+- Additional solutions applied and their rationale
+
+fix #N
+```
+
+**Example:**
+
+```
+fix: users being logged out after service updates
+
+Problem:
+- All users forced to log out with each new deployment
+- Work in progress lost causing user complaints
+
+Solution:
+- Migrated memory sessions to Redis for persistence across deployments
+- Implemented JWT refresh tokens for automatic re-authentication to provide seamless service
+```
+
+**Important formatting rules:**
+
+- First line (title): `type: clearly express the user-facing problem`
+- description must start with lowercase, no period at end, use imperative mood
+- Prefer user perspective > code/technical perspective when possible
+- Except for very simple cases, don't just list changes - explain with sentences
+- Include reasoning and justification when explaining solutions
+- Keep descriptions concise - avoid verbose explanations
+- If branch name ends with number (e.g., develop/32, develop/shlee/32), add "fix #N" at the end
+- **When multiple changes/reasons exist, use bullet points (-) for better readability**
 
 ## Output Format
 
-The command will provide you with:
+The command will provide:
 
-1. Analysis of staged changes (or all changes if nothing is staged)
-2. Suggested commit structure (single or multiple commits)
-3. Ready-to-use commit message(s) that you can copy and use with `git commit -m`
-4. If multiple commits are suggested, instructions on how to stage files separately
+1. Analysis of the staged changes (or all changes if nothing is staged)
+2. **Creates commit_message.md file** containing both Korean and English versions
+3. Copy your preferred version from the file
 
 ## Important Notes
 
-- This command only generates commit messages, it does not perform the actual commit
-- You can review and modify the suggested messages before committing
-- If no files are staged, it will analyze all modified and new files
-- The commit message will be constructed based on the actual changes detected
-- Focus is on clarity and providing useful context for future developers
+- This command ONLY generates commit messages - it never performs actual commits
+- **commit_message.md file contains both versions** - choose the one you prefer
+- **Focus on the problem** - don't just list changes
+- Explain solutions with **why you did it that way**
+- Keep messages concise - don't over-explain what's obvious from the code
+- Branch issue numbers (e.g., develop/32) will automatically append "fix #N"
+- Copy message from generated file and manually execute `git commit`
+- **Spec compliance**: All messages MUST follow Conventional Commits format
+- **Type is mandatory**: No type = invalid commit for semantic-release
+- **Case sensitivity**: Types must be lowercase (except `BREAKING CHANGE`)
+
+## Execution Instructions for Claude
+
+1. Run git commands to understand changes (staged or all if none staged)
+2. Analyze file patterns and suggest appropriate commit type
+3. Determine if scope is needed (e.g., `fix(api):`, `feat(ui):`)
+4. Draft commit message following format:
+   - Title: `<type>[(scope)]: <user-facing description>`
+   - Body: Choose appropriate format based on complexity (very simple/simple/standard/complex)
+   - Footer: Auto-add `fix #N` if branch name ends with number
+5. Generate both Korean and English versions
+6. Write to `/workspaces/ai-config-toolkit/commit_message.md`
+7. Present suggested type with reasoning
+
+**Token optimization**: Focus git diff analysis on:
+
+- New/deleted files → likely `feat` or `refactor`
+- Modified files in src/ → check if bug fix or feature
+- Modified docs/README → `docs`
+- Modified package.json → `chore`

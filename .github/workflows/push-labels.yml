@@ -65,7 +65,7 @@ jobs:
       - name: Sync labels to ${{ matrix.repo }}
         uses: micnncim/action-label-syncer@v1.3.0
         with:
-          repository: ${{ github.repository_owner }}/${{ matrix.repo }}
+          repository: ${{ matrix.repo }}
           manifest: "./labels.yml"
           token: ${{ secrets.PAT }}
           prune: false

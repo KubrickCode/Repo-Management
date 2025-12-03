@@ -41,4 +41,4 @@ jobs:
           repository: ${{ github.repository_owner }}/${{ matrix.repo }}
           manifest: "./labels.yml"
           token: ${{ secrets.PAT }}
-          prune: true
+          prune: false

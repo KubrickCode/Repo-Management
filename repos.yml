@@ -13,3 +13,5 @@ repos:
   # Organization 리포지토리
   - "specvital/web"
   - "specvital/core"
+  - "specvital/infra"
+  - "specvital/collector"

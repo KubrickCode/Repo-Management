@@ -15,6 +15,14 @@ on:
         description: 'single 선택 시 리포지토리명 입력'
         type: string
         required: false
+      sync_mode:
+        description: '라벨 동기화 방식'
+        type: choice
+        required: true
+        default: 'merge'
+        options:
+          - merge
+          - force
 
 jobs:
   prepare-matrix:
@@ -68,4 +76,4 @@ jobs:
           repository: ${{ matrix.repo }}
           manifest: "./labels.yml"
           token: ${{ secrets.PAT }}
-          prune: false
+          prune: ${{ inputs.sync_mode == 'force' }}
